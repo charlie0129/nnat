@@ -59,6 +59,7 @@ func main() {
 	if len(connectionSecretBytes) != len(connectionSecret) {
 		log.Fatalf("Invalid connection secret length: %d, must be %d", len(connectionSecretBytes), len(connectionSecret))
 	}
+	connectionSecret = [16]byte(connectionSecretBytes)
 
 	log.Infof("nnatc version %s", version.Version)
 
