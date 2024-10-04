@@ -1,7 +1,9 @@
 package handshake
 
+type ConnectionSecretType [16]byte
+
 type ClientHello struct {
-	ConnectionSecret [16]byte
+	ConnectionSecret ConnectionSecretType
 }
 
 func (c *ClientHello) Serialize() []byte {

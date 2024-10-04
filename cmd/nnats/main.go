@@ -17,28 +17,48 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/charlie0129/template-go/pkg/handshake"
-	"github.com/charlie0129/template-go/pkg/version"
+	"github.com/charlie0129/nnat/pkg/handshake"
+	"github.com/charlie0129/nnat/pkg/nnats"
+	"github.com/charlie0129/nnat/pkg/version"
 )
 
 var (
-	listenAddress = "localhost:9253"
-	log           = logrus.WithField("component", "nnats")
+	listenAddress  = "localhost:9253"
+	log            = logrus.WithField("component", "nnats")
+	readBufferSize = 1024
 )
 
 var (
 	secretPortMap = map[[16]byte]uint16{
 		[16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}: 18080,
 	}
+
+	listeners         *nnats.NNATSListeners
+	connPool          *nnats.NNATCConnections
+	secretPortStorage *nnats.SecretPortStorage
 )
+
+func init() {
+	secretPortStorage = nnats.NewSecretPortStorage()
+	connPool = nnats.NewNNATCConnections(secretPortStorage)
+	listeners = nnats.NewNNATSListeners(connPool)
+
+	for secret, port := range secretPortMap {
+		secretPortStorage.Set(secret, port)
+	}
+}
 
 func main() {
 	log.Infof("nnats version %s", version.Version)
+
+	logrus.SetLevel(logrus.DebugLevel)
 
 	listener, err := net.Listen("tcp", listenAddress)
 	if err != nil {
@@ -46,7 +66,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	log.Infof("Listening on %s", listenAddress)
+	log.Infof("Listening on %s for nnatc connections", listenAddress)
 
 	for {
 		conn, err := listener.Accept()
@@ -54,24 +74,26 @@ func main() {
 			log.Fatalf("Failed to accept connection: %v", err)
 		}
 
-		go handleConnection(conn)
+		go handleNNATCConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
+func handleNNATCConnection(nnatcConn net.Conn) {
+	buf := make([]byte, readBufferSize)
+	n, err := nnatcConn.Read(buf)
+	if errors.Is(err, io.EOF) {
+		log.Infof("Client closed connection")
+		return
+	}
 	if err != nil {
-		log.Errorf("Failed to read from client: %v", err)
+		log.Errorf("Failed to read from nnatc: %v", err)
 		return
 	}
 
 	clientHello := handshake.ClientHello{}
 	clientHello.Deserialize(buf[:n])
 
-	log.Infof("Received client hello: %v", clientHello)
+	log.Debugf("Received client hello: %v", clientHello)
 
 	serverPort, ok := secretPortMap[clientHello.ConnectionSecret]
 	if !ok {
@@ -84,64 +106,19 @@ func handleConnection(conn net.Conn) {
 		ServerPort: serverPort,
 	}
 
-	_, err = conn.Write(serverHello.Serialize())
+	_, err = nnatcConn.Write(serverHello.Serialize())
 	if err != nil {
 		log.Errorf("Failed to write to client: %v", err)
 		return
 	}
 
-	log.Infof("Sent server hello: %v", serverHello)
+	log.Debugf("Sent server hello: %v", serverHello)
 
-	// listen on serverPort and forward traffic to conn
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", serverPort))
+	connPool.AddConnection(clientHello.ConnectionSecret, nnatcConn)
+
+	err = listeners.ListenIfNotAlready(clientHello.ConnectionSecret, "tcp", fmt.Sprintf(":%d", serverPort))
 	if err != nil {
-		log.Errorf("Failed to listen on port %d: %v", serverPort, err)
+		log.Errorf("Failed to listen for nnats: %v", err)
 		return
-	}
-
-	log.Infof("Listening on port %d", serverPort)
-
-	for {
-		serverConn, err := listener.Accept()
-		if err != nil {
-			log.Errorf("Failed to accept connection: %v", err)
-			continue
-		}
-
-		go func() {
-			defer serverConn.Close()
-
-			for {
-				n, err := serverConn.Read(buf)
-				if err != nil { // Handle EOF
-					log.Errorf("Failed to read from server: %v", err)
-					break
-				}
-
-				_, err = conn.Write(buf[:n])
-				if err != nil {
-					log.Errorf("Failed to write to client: %v", err)
-					break
-				}
-			}
-		}()
-
-		go func() {
-			defer conn.Close()
-
-			for {
-				n, err := conn.Read(buf)
-				if err != nil { // Handle EOF
-					log.Errorf("Failed to read from client: %v", err)
-					break
-				}
-
-				_, err = serverConn.Write(buf[:n])
-				if err != nil {
-					log.Errorf("Failed to write to server: %v", err)
-					break
-				}
-			}
-		}()
 	}
 }
