@@ -145,8 +145,6 @@ func (c *connectionPool) handshake(nnatsConn net.Conn) bool {
 }
 
 func (c *connectionPool) newConnection(nnatsConn net.Conn) {
-	defer c.cond.Broadcast()
-	defer c.currentConnections.Add(-1)
 	defer nnatsConn.Close()
 
 	var dstConn net.Conn
@@ -157,13 +155,20 @@ func (c *connectionPool) newConnection(nnatsConn net.Conn) {
 	log.Debugf("Waiting for first message from server")
 	n, err := nnatsConn.Read(buf)
 	if errors.Is(err, io.EOF) {
+		c.currentConnections.Add(-1)
+		c.cond.Broadcast()
 		log.Infof("Connection closed by server")
 		return
 	}
 	if err != nil {
+		c.currentConnections.Add(-1)
+		c.cond.Broadcast()
 		log.Errorf("Failed to read from server: %v", err)
 		return
 	}
+	c.currentConnections.Add(-1)
+	c.cond.Broadcast()
+
 	dstConn, err = net.Dial("tcp", destinationAddress)
 	if err != nil {
 		log.Errorf("Failed to connect to destination: %v", err)
