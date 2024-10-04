@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"encoding/base64"
+	"flag"
 	"io"
 	"net"
 	"sync"
@@ -30,14 +32,34 @@ import (
 )
 
 var (
-	connPoolSize       = 10
-	readBufferSize     = 1024
-	serverAddress      = "localhost:9253"
-	destinationAddress = "localhost:8080"
-	log                = logrus.WithField("component", "nnatc")
+	connPoolSize           = 10
+	serverAddress          = "localhost:9253"
+	destinationAddress     = "localhost:8080"
+	connectionSecret       [16]byte
+	connectionSecretString string
+	log                    = logrus.WithField("component", "nnatc")
 )
 
 func main() {
+	flag.IntVar(&connPoolSize, "conn-pool-size", connPoolSize, "Connection pool size")
+	flag.StringVar(&serverAddress, "server-address", serverAddress, "Server address")
+	flag.StringVar(&destinationAddress, "destination-address", destinationAddress, "Destination address")
+	flag.StringVar(&connectionSecretString, "connection-secret", "", "Connection secret")
+	flag.Parse()
+
+	if connectionSecretString == "" {
+		log.Fatalf("Connection secret is required")
+	}
+
+	// base64 decode connection secret
+	connectionSecretBytes, err := base64.StdEncoding.DecodeString(connectionSecretString)
+	if err != nil {
+		log.Fatalf("Failed to decode connection secret: %v", err)
+	}
+	if len(connectionSecretBytes) != len(connectionSecret) {
+		log.Fatalf("Invalid connection secret length: %d, must be %d", len(connectionSecretBytes), len(connectionSecret))
+	}
+
 	log.Infof("nnatc version %s", version.Version)
 
 	logrus.SetLevel(logrus.DebugLevel)
@@ -91,7 +113,7 @@ func (c *connectionPool) maintain() {
 
 func (c *connectionPool) handshake(nnatsConn net.Conn) bool {
 	clientHello := handshake.ClientHello{
-		ConnectionSecret: [16]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
+		ConnectionSecret: connectionSecret,
 	}
 	_, err := nnatsConn.Write(clientHello.Serialize())
 	if err != nil {
