@@ -1,6 +1,12 @@
 # nnat (No NAT)
 
-`nnat` is a L4 reverse proxy that proxies requests to a server behind NAT. It has similar functionalities as [fatedier/frp](https://github.com/fatedier/frp). It is a hobby project that I happen to be curious about. I don't know why, but I just want to build it.
+`nnat` is a L4 reverse proxy that proxies requests to a server behind NAT, similar to [fatedier/frp](https://github.com/fatedier/frp). 
+
+It is just a hobby project that I happen to be curious about.
+
+One day I had a dreaming about reverse proxying to a server behind NAT (wtf?) and when I woke up, I thought it was a good idea to implement it. So here we are.
+
+I know there are projects that are way better than this one, but why not practice some networking skills?
 
 ## Architecture
 
