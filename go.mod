@@ -2,7 +2,10 @@ module github.com/charlie0129/template-go
 
 go 1.22
 
-require github.com/fatih/color v1.15.0
+require (
+	github.com/fatih/color v1.15.0
+	github.com/sirupsen/logrus v1.9.3
+)
 
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect

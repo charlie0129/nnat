@@ -17,13 +17,13 @@ include makefiles/common.mk
 
 # Settings for this subproject
 # Entry file, containing func main, or dir containing package main
-ENTRY           := cmd/foo
+ENTRY           := cmd/nnats
 # All supported platforms for binary distribution
 BIN_PLATFORMS   := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 # All supported platforms for container image distribution
 IMAGE_PLATFORMS := linux/amd64 linux/arm64
 # Binary basename (.exe will be automatically added when building for Windows)
-BIN             := foo
+BIN             := nnats
 # Container image name, without repo or tags
 IMAGE_NAME      := $(BIN)
 # Container image repositories to push to (supports multiple repos)
