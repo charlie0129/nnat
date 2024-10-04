@@ -23,6 +23,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -97,6 +98,8 @@ func (c *connectionPool) maintain() {
 			}
 
 			if !c.handshake(nnatsConn) {
+				// wait for a bit before trying again
+				time.Sleep(5 * time.Second)
 				c.cond.L.Unlock()
 				continue
 			}

@@ -1,7 +1,8 @@
 package handshake
 
 const (
-	ServerHelloCodeOK = 0
+	ServerHelloCodeOK = iota
+	ServerHelloCodeInvalidSecret
 )
 
 type ServerHello struct {

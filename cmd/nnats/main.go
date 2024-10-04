@@ -135,6 +135,16 @@ func handleNNATCConnection(nnatcConn net.Conn) {
 	serverPort, ok := conf[clientHello.ConnectionSecret]
 	if !ok {
 		log.Errorf("Unknown connection secret: %v", clientHello.ConnectionSecret)
+		serverHello := handshake.ServerHello{
+			Code:       handshake.ServerHelloCodeInvalidSecret,
+			ServerPort: serverPort,
+		}
+
+		_, err = nnatcConn.Write(serverHello.Serialize())
+		if err != nil {
+			log.Errorf("Failed to write to client: %v", err)
+			return
+		}
 		return
 	}
 
