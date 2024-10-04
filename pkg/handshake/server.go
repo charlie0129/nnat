@@ -5,6 +5,10 @@ const (
 	ServerHelloCodeInvalidSecret
 )
 
+const (
+	ServerHelloSize = 3
+)
+
 type ServerHello struct {
 	Code       uint8
 	ServerPort uint16

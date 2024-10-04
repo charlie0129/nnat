@@ -98,6 +98,7 @@ func (c *connectionPool) maintain() {
 			}
 
 			if !c.handshake(nnatsConn) {
+				nnatsConn.Close()
 				// wait for a bit before trying again
 				time.Sleep(5 * time.Second)
 				c.cond.L.Unlock()
@@ -132,6 +133,12 @@ func (c *connectionPool) handshake(nnatsConn net.Conn) bool {
 		log.Errorf("Failed to read from server: %v", err)
 		return false
 	}
+
+	if n != handshake.ServerHelloSize {
+		log.Errorf("Invalid server hello size: %d", n)
+		return false
+	}
+
 	serverHello.Deserialize(buf[:n])
 
 	log.Infof("Received server hello: %v", serverHello)

@@ -116,6 +116,14 @@ func main() {
 }
 
 func handleNNATCConnection(nnatcConn net.Conn) {
+	closeConn := true
+
+	defer func() {
+		if closeConn {
+			nnatcConn.Close()
+		}
+	}()
+
 	buf := make([]byte, readBufferSize)
 	n, err := nnatcConn.Read(buf)
 	if errors.Is(err, io.EOF) {
@@ -124,6 +132,11 @@ func handleNNATCConnection(nnatcConn net.Conn) {
 	}
 	if err != nil {
 		log.Errorf("Failed to read from nnatc: %v", err)
+		return
+	}
+
+	if n != handshake.ClientHelloSize {
+		log.Errorf("Invalid client hello size: %d", n)
 		return
 	}
 
@@ -168,4 +181,6 @@ func handleNNATCConnection(nnatcConn net.Conn) {
 		log.Errorf("Failed to listen for nnats: %v", err)
 		return
 	}
+
+	closeConn = false
 }
