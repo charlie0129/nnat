@@ -127,7 +127,7 @@ You can run multiple `nnatc` instances to handle multiple servers behind NAT. Ju
 The protocol between `nnatc` and `nnats` is a simple binary protocol. 
 
 1. Once the `nnatc` makes a connection to the `nnats`, it sends a `ClientHello` message which contains the secret to identify itself. 
-2. The `nnats` responds with a `ServerHello` message which contains whether the connection is accepted or not and the port that the `nnats` will listen on for incoming connections from the user.
+2. The `nnats` responds with a `ServerHello` message which contains whether the connection is accepted or not and the port that the `nnats` will listen for incoming connections from the user.
 
 After the initial handshake, the data is copied unmodified between the `user` and `dst`.
 
@@ -139,4 +139,4 @@ Since each connection from user will consume a connection between `nnatc` and `n
 
 The connection pool is a simple implementation that keeps a list of connections between `nnatc` and `nnats` that can improve performance during traffic bursts.
 
-When the `nnatc` is started, it opens `conn-pool-size` connections to the `nnats` and keeps them open. The `nnats` will remember the public port that listens on and the connections associated with this `nnatc` instance. When a new connection is made from the user, the `nnats` will know which `nnatc` this connection is destined to (each public port is bind to a `nnatc` isntance) and select a connection from the pool and forwards the data to the `nnatc`. Once the connection is closed, a new connection is opened by the `nnatc` and added to the pool to keep the pool size constant.
+When the `nnatc` is started, it opens `conn-pool-size` connections to the `nnats` and keeps them open. The `nnats` will remember the public port that listens on and the connections associated with this `nnatc` instance. When a new connection is made from the user, the `nnats` will know which `nnatc` this connection is destined to (each public port is bind to a `nnatc` isntance) and select a connection from the pool and forwards the data to the `nnatc`. Once the data copy is started, a new connection is opened by the `nnatc` and added to the pool to make sure there are free connections for request bursts.
