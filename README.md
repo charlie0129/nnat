@@ -81,7 +81,7 @@ MTIzNDEyMzQxMjM0MTIzNA==
 
 ### Run nnats
 
-We need to let the `nnats` know which port to listen on and which `nnatc` to forward the data to. We can achieve this using `-conf` argument. Its value is formed as `<base64secret>:<port>`. `-conf` can be specified multiple times to add multiple `nnatc`s. 
+We need to let the `nnats` know which port to listen on and which `nnatc` to forward the data to. We can achieve this using `-conf` argument. Its value is formed as `<base64-secret>:<port>`. `-conf` can be specified multiple times to add multiple `nnatc`s. 
 
 We are only adding one `nnatc` in this example (with the secret generated above `MTIzNDEyMzQxMjM0MTIzNA==` and listening on port `:18080`).
 
@@ -111,6 +111,14 @@ $ bin/nnatc \
 ### Test
 
 Now you can test the setup by connecting to `1.3.3.3:18080` and see if the data is forwarded to `dst`.
+
+### Multiple `nnatc` instances
+
+You can run multiple `nnatc` instances to handle multiple servers behind NAT. Just:
+
+- Generate a secret for each `nnatc` instance.
+- Add each `nnatc` instance to the `nnats` using `-conf <base64-secret>:<port>`.
+- Run each `nnatc` instance with the corresponding secret and destination address.
 
 ## Internals
 
