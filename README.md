@@ -116,7 +116,7 @@ Now you can test the setup by connecting to `1.3.3.3:18080` and see if the data 
 
 You can run multiple `nnatc` instances to handle multiple servers behind NAT. Just:
 
-- Generate a secret for each `nnatc` instance.
+- Generate a secret for each `nnatc` instance (they MUST be different).
 - Add each `nnatc` instance to the `nnats` using `-conf <base64-secret>:<port>`.
 - Run each `nnatc` instance with the corresponding secret and destination address.
 
